@@ -41,7 +41,7 @@ var client = redis.createClient();
 
 var rules = [
   {interval: 1, limit: 5},
-  {interval: 3600, limit: 1000}
+  {interval: 3600, limit: 1000, precision: 10000}
   ];
 var limiter = new RateLimit(client, rules);
 
@@ -85,13 +85,26 @@ var client = redis.createClient();
 var rules = [
   {interval: 3600, limit: 1000}
   ];
+
 // You can define a prefix to be included on each redis entry
 // This prevents collisions if you have multiple applications
 // using the same redis db
-var limiter = new RateLimit(client, rules, 'RedisPrefix');
+var limiter = new RateLimit(client, rules, {prefix: 'RedisPrefix'});
 ```
-**NOTE:** If your redis library supports key prefixing like [ioredis](https://github.com/luin/ioredis#transparent-key-prefixing) does, this library will _not_ correctly resolve the whitelist/blacklist items. 
 
+**NOTE:** If your redis client supports transparent prefixing (like
+[ioredis](https://github.com/luin/ioredis#transparent-key-prefixing))
+the following configuration should be used:
+
+```javascript
+var limiter = new RateLimit(ioRedisClient, rules, {
+  prefix: ioRedisClient.keyPrefix,
+  clientPrefix: true
+});
+```
+
+This will only include the prefix in the whitelist/blacklist keys passed to
+the Lua scripts to be executed.
 
 Whitelist/Blacklist Usage
 -------------------------
@@ -199,6 +212,12 @@ Note: this is helpful if your application sits behind a proxy (or set of proxies
 
 ChangeLog
 ---------
+* **1.7.0**
+  * Fixed issue with whitelist and blacklist entries not being prefixed. Properly document prefix feature.
+* **1.6.2**
+  * Add support for precision property in rules objects
+* **1.6.1**
+  * Remove unused redis require
 * **1.6.0**
   * Add support for whitelisting and blacklisting keys
 * **1.5.0**
